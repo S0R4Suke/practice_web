@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>SnakeBite</title>
+        <meta charset="utf-8" />
+        <script type="text/javascript">
+            "use strict";
+            //座標指定に使用するW,Hの定義
+            //canvasの横、縦幅S=20
+            var W,H,S = 20;
+            //蛇、餌の座標保持
+            var snake=[],foods=[];
+            //入力キーのキーコード
+            var keyCode = 0;
+            //得点
+            var point = 0;
+            //timerの初期化
+            var timer = NaN;
+            //
+            var ctx;
+
+            //座標
+            function Point(x,y){
+                //x座標
+                this.x = x;
+                //y座標
+                this.y = y;
+            }
+
+            //初期化
+            function init(){
+                //canvas APIの範囲としてfieldを指定
+                var canvas = document.getElementById('field');
+                //
+                W = canvas.width / S;
+                H = canvas.height / S;
+                //canvas要素は自分で描画することができないので、
+                //グローバル関数ctxにグラフィックを要素するためのメソッドやプロパティを渡す。
+                ctx = canvas.getContext('2d');
+                //フォントの指定
+                ctx.font = "20px sans-serif";
+                //snake配列に蛇の初期位置をpushする。
+                snake.push(new Point(W/2,H/2));
+                //餌を配置するaddFood関数を10回呼び出し
+                for(var i=0;i<10;i++){
+                    addFood();
+                }
+                //200m秒ごとにtick関数の呼び出し
+                timer = setInterval("tick()",200);
+                //window=scriptを実行しているウィンドウ,onkeydown=キーが押されたとき
+                window.onkeydown = keydown;
+            }
+            //餌の配置
+            function addFood(){
+                //餌が正しく配置されるまで実行
+                while(true){
+                    //math.floor()は与えられた数値以下の最大の整数を返す
+                    //餌を配置するxの値をランダムに求める
+                    var x = Math.floor(Math.random()*W);
+                    //餌を配置するyの値をランダムに求める
+                    var y = Math.floor(Math.random()*H);
+                    //既に餌がある場所または蛇のいる場所でないかどうか
+                    if(isHit(foods,x,y) || isHit(snake,x,y)){
+                        //やり直し
+                        continue;
+                    }
+                    //フードの配列に座標を追加
+                    foods.push(new Point(x,y));
+                    //おわり
+                    break;
+                }
+            }
+            //ヒット判定
+            function isHit(data,x,y){
+                //dataは餌または蛇の配列
+                //配列の長さ分の実行
+                for(var i = 0;i<data.length;i++){
+                    //座標の一致判定
+                    if(data[i].x == x && data[i].y == y){
+                        //1を返す
+                        return true;
+                    }
+                }
+                //0を返す
+                return false;
+            }
+            //蛇が餌を食べた場合の餌の再配置
+            //x、yは食べられた餌の座標
+            function moveFood(x,y){
+                //filterは与えられた関数によって実装されたテストに合格した全ての配列から新しい配列を生成する
+                //実装するテストの内容
+                //食べられた餌の座標と一致する配列要素を抜く
+                foods = foods.filter(function(p){
+                    //xもyも一致のときにfalseを返す。
+                    return(p.x != x || p.y != y);
+                });
+                //削除した分の餌を追加する
+                addFood();
+            }
+            //メイン関数
+            function tick(){
+                //蛇の頭の座標(x)
+                var x = snake[0].x;
+                //蛇の頭の座標(y)
+                var y = snake[0].y;
+
+                //キーボードで上下左右キーが押されたときの動作
+                switch(keyCode){
+                    //左
+                    case 37:x--; break;
+                    //上
+                    case 38:y--; break;
+                    //右
+                    case 39:x++; break;
+                    //下
+                    case 40:y++; break;
+                    //画面の再描画
+                    default:paint(); return;
+                }
+                //蛇が自分または壁に当たったかの判定
+                if(isHit(snake,x,y) || x<0 || x>=W || y<0||y>=H){
+                    //タイマーを止める
+                    clearInterval(timer);
+                    //再描画
+                    paint();
+                    //ゲーム終了
+                    return;
+                }
+                //unshiftは配列の最初に1つ以上の要素を追加して配列の長さを返す
+                //先頭に新しいPointオブジェクトを追加(蛇の座標移動)
+                snake.unshift(new Point(x,y));
+                //餌に当たった時の判定
+                if(isHit(foods,x,y)){
+                    //スコアを10追加
+                    point += 10;
+                    //餌を移動
+                    moveFood(x,y);
+                //通常時
+                }else{
+                    //前回の蛇の座標位置を削除
+                    snake.pop();
+                }
+                //再描画
+                paint();
+            }
+            //再描画関数
+            function paint(){
+                //clearRectは座標(x,y)を始点とする大きさ(w,h)の領域を透明色で塗りつぶす(消去)
+                ctx.clearRect(0,0,W*S,H*S);
+                //図形(text)の内側をrgb(256,0,0)色で塗る
+                //スコアの色
+                ctx.fillStyle = "rgb(256,0,0)";
+                //塗りつぶしするテキストを指定座標に描画
+                //スコアをS,S*2の位置に配置
+                ctx.fillText(point,S,S*2);
+                //図形(text)の内側をrgb(0,0,255)色で塗る
+                //餌の色
+                ctx.fillStyle = "rgb(0,0,255)"
+                //forEachは配列の各要素に対して実行
+                //塗りつぶしするテキスト指定座標に描画
+                //餌の位置をx*S,(p.y+1)*Sの位置に配置
+                foods.forEach(function (p){
+                    ctx.fillText("+",p.x * S,(p.y+1) * S);
+                });
+                //蛇の位置をx*S,(p.y+1)*Sの位置に配置
+                snake.forEach(function(p){
+                    ctx.fillText("*",p.x * S,(p.y + 1) * S);
+                });
+            }
+            //押したキーのキーコードをkeyCodeに保存
+            function keydown(event){
+                keyCode = event.keyCode;
+            }
+
+        </script>
+    </head>
+    <!-- onloadはブラウザからページを読み込むときに実行する処理を呼び出す関数 -->
+    <body onload="init()">
+    <!-- canvasにid=fieldを付与、サイズは400×400、背景は白色 -->
+    <canvas id="field" width="400" height="400" style="background:#cccccc"></canvas>
+    </body>
+    </html>
+</html>
