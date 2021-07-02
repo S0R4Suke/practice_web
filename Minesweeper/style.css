@@ -1,0 +1,8 @@
+td.cell{
+    width:20px;
+    height:20px;
+    background-color: Gray;
+}
+td.open{
+    background-color: White;
+}
